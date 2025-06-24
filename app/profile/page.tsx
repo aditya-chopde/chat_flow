@@ -1,24 +1,28 @@
 "use client"
 
+import type React from "react"
+
 import { motion } from "framer-motion"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { ArrowLeft, Camera, Bell, Shield, Moon, Globe, MessageCircle, Edit3, Save } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Camera, Bell, Shield, Moon, Globe, Smartphone, Save, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
 
 export default function ProfilePage() {
-  const [isEditing, setIsEditing] = useState(false)
-  const [profile, setProfile] = useState({
-    name: "John Doe",
+  const [isLoading, setIsLoading] = useState(false)
+  const [profileData, setProfileData] = useState({
+    firstName: "John",
+    lastName: "Doe",
     email: "john.doe@example.com",
+    phone: "+1 (555) 123-4567",
     bio: "Software developer passionate about creating amazing user experiences.",
-    status: "Available",
   })
 
   const [settings, setSettings] = useState({
@@ -26,52 +30,63 @@ export default function ProfilePage() {
     darkMode: false,
     onlineStatus: true,
     readReceipts: true,
+    twoFactor: false,
   })
 
-  const handleSave = () => {
-    setIsEditing(false)
-    // Here you would typically save to a backend
+  const handleSave = async () => {
+    setIsLoading(true)
+    // Simulate save process
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+    setIsLoading(false)
   }
 
-  const handleSettingChange = (key: string, value: boolean) => {
-    setSettings((prev) => ({ ...prev, [key]: value }))
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProfileData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }))
+  }
+
+  const handleSettingChange = (setting: string, value: boolean) => {
+    setSettings((prev) => ({
+      ...prev,
+      [setting]: value,
+    }))
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
       <motion.div
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="bg-white border-b border-gray-200 p-4"
+        className="bg-white/80 backdrop-blur-sm border-b border-gray-200 p-4"
       >
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Link href="/chat">
-              <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/chat">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Chat
-              </Button>
-            </Link>
-            <div className="flex items-center space-x-2">
-              <MessageCircle className="h-6 w-6 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">Profile Settings</span>
-            </div>
+              </Link>
+            </Button>
+            <h1 className="text-2xl font-bold text-gray-900">Profile Settings</h1>
           </div>
           <Button
-            onClick={isEditing ? handleSave : () => setIsEditing(true)}
-            className="bg-blue-600 hover:bg-blue-700 transition-colors"
+            onClick={handleSave}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+            disabled={isLoading}
           >
-            {isEditing ? (
+            {isLoading ? (
               <>
-                <Save className="h-4 w-4 mr-2" />
-                Save Changes
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
               </>
             ) : (
               <>
-                <Edit3 className="h-4 w-4 mr-2" />
-                Edit Profile
+                <Save className="mr-2 h-4 w-4" />
+                Save Changes
               </>
             )}
           </Button>
@@ -81,67 +96,69 @@ export default function ProfilePage() {
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         {/* Profile Information */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
-          <Card>
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>Manage your personal information and how others see you</CardDescription>
+              <CardTitle className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">P</span>
+                </div>
+                <span>Profile Information</span>
+              </CardTitle>
+              <CardDescription>Update your personal information and profile picture</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Avatar Section */}
+              {/* Profile Picture */}
               <div className="flex items-center space-x-6">
                 <div className="relative">
-                  <Avatar className="w-24 h-24">
-                    <AvatarImage src="/placeholder.svg?height=96&width=96" />
+                  <Avatar className="h-24 w-24">
+                    <AvatarImage src="/placeholder.svg?height=96&width=96" alt="Profile" />
                     <AvatarFallback className="text-2xl">
-                      {profile.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
+                      {profileData.firstName[0]}
+                      {profileData.lastName[0]}
                     </AvatarFallback>
                   </Avatar>
-                  {isEditing && (
-                    <Button size="sm" className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0">
-                      <Camera className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  >
+                    <Camera className="h-4 w-4 text-white" />
+                  </Button>
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <h3 className="text-lg font-semibold">{profile.name}</h3>
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">
-                      {profile.status}
-                    </Badge>
-                  </div>
-                  <p className="text-gray-600">{profile.email}</p>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {profileData.firstName} {profileData.lastName}
+                  </h3>
+                  <p className="text-gray-600">{profileData.email}</p>
+                  <Badge variant="secondary" className="mt-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2" />
+                    Online
+                  </Badge>
                 </div>
               </div>
+
+              <Separator />
 
               {/* Form Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={profile.name}
-                    onChange={(e) => setProfile((prev) => ({ ...prev, name: e.target.value }))}
-                    disabled={!isEditing}
-                    className={!isEditing ? "bg-gray-50" : ""}
-                  />
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input id="firstName" name="firstName" value={profileData.firstName} onChange={handleInputChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input id="lastName" name="lastName" value={profileData.lastName} onChange={handleInputChange} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profile.email}
-                    onChange={(e) => setProfile((prev) => ({ ...prev, email: e.target.value }))}
-                    disabled={!isEditing}
-                    className={!isEditing ? "bg-gray-50" : ""}
-                  />
+                  <Input id="email" name="email" type="email" value={profileData.email} onChange={handleInputChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input id="phone" name="phone" value={profileData.phone} onChange={handleInputChange} />
                 </div>
               </div>
 
@@ -149,111 +166,169 @@ export default function ProfilePage() {
                 <Label htmlFor="bio">Bio</Label>
                 <Input
                   id="bio"
-                  value={profile.bio}
-                  onChange={(e) => setProfile((prev) => ({ ...prev, bio: e.target.value }))}
-                  disabled={!isEditing}
-                  className={!isEditing ? "bg-gray-50" : ""}
-                  placeholder="Tell others about yourself..."
+                  name="bio"
+                  value={profileData.bio}
+                  onChange={handleInputChange}
+                  placeholder="Tell us about yourself..."
                 />
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Privacy & Settings */}
+        {/* Notification Settings */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <Card>
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle>Privacy & Settings</CardTitle>
-              <CardDescription>Control your privacy and notification preferences</CardDescription>
+              <CardTitle className="flex items-center space-x-2">
+                <Bell className="h-5 w-5 text-blue-600" />
+                <span>Notifications</span>
+              </CardTitle>
+              <CardDescription>Manage your notification preferences</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Bell className="h-5 w-5 text-gray-500" />
-                    <div>
-                      <p className="font-medium">Push Notifications</p>
-                      <p className="text-sm text-gray-500">Receive notifications for new messages</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={settings.notifications}
-                    onCheckedChange={(checked) => handleSettingChange("notifications", checked)}
-                  />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-gray-900">Push Notifications</h4>
+                  <p className="text-sm text-gray-600">Receive notifications on your device</p>
                 </div>
+                <Switch
+                  checked={settings.notifications}
+                  onCheckedChange={(checked) => handleSettingChange("notifications", checked)}
+                />
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Moon className="h-5 w-5 text-gray-500" />
-                    <div>
-                      <p className="font-medium">Dark Mode</p>
-                      <p className="text-sm text-gray-500">Switch to dark theme</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={settings.darkMode}
-                    onCheckedChange={(checked) => handleSettingChange("darkMode", checked)}
-                  />
-                </div>
+              <Separator />
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Globe className="h-5 w-5 text-gray-500" />
-                    <div>
-                      <p className="font-medium">Show Online Status</p>
-                      <p className="text-sm text-gray-500">Let others see when you're online</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={settings.onlineStatus}
-                    onCheckedChange={(checked) => handleSettingChange("onlineStatus", checked)}
-                  />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-gray-900">Read Receipts</h4>
+                  <p className="text-sm text-gray-600">Let others know when you've read their messages</p>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Shield className="h-5 w-5 text-gray-500" />
-                    <div>
-                      <p className="font-medium">Read Receipts</p>
-                      <p className="text-sm text-gray-500">Show when you've read messages</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={settings.readReceipts}
-                    onCheckedChange={(checked) => handleSettingChange("readReceipts", checked)}
-                  />
-                </div>
+                <Switch
+                  checked={settings.readReceipts}
+                  onCheckedChange={(checked) => handleSettingChange("readReceipts", checked)}
+                />
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Account Actions */}
+        {/* Privacy & Security */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
         >
-          <Card>
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle>Account Actions</CardTitle>
-              <CardDescription>Manage your account and data</CardDescription>
+              <CardTitle className="flex items-center space-x-2">
+                <Shield className="h-5 w-5 text-green-600" />
+                <span>Privacy & Security</span>
+              </CardTitle>
+              <CardDescription>Control your privacy and security settings</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-gray-900">Online Status</h4>
+                  <p className="text-sm text-gray-600">Show when you're online to other users</p>
+                </div>
+                <Switch
+                  checked={settings.onlineStatus}
+                  onCheckedChange={(checked) => handleSettingChange("onlineStatus", checked)}
+                />
+              </div>
+
+              <Separator />
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-gray-900">Two-Factor Authentication</h4>
+                  <p className="text-sm text-gray-600">Add an extra layer of security to your account</p>
+                </div>
+                <Switch
+                  checked={settings.twoFactor}
+                  onCheckedChange={(checked) => handleSettingChange("twoFactor", checked)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Appearance */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Moon className="h-5 w-5 text-purple-600" />
+                <span>Appearance</span>
+              </CardTitle>
+              <CardDescription>Customize the look and feel of your app</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-gray-900">Dark Mode</h4>
+                  <p className="text-sm text-gray-600">Switch to dark theme for better viewing in low light</p>
+                </div>
+                <Switch
+                  checked={settings.darkMode}
+                  onCheckedChange={(checked) => handleSettingChange("darkMode", checked)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Connected Devices */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+        >
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Smartphone className="h-5 w-5 text-orange-600" />
+                <span>Connected Devices</span>
+              </CardTitle>
+              <CardDescription>Manage devices that have access to your account</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button variant="outline" className="flex-1">
-                  Change Password
-                </Button>
-                <Button variant="outline" className="flex-1">
-                  Download Data
-                </Button>
-                <Button variant="destructive" className="flex-1">
-                  Delete Account
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Globe className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900">Web Browser</h4>
+                    <p className="text-sm text-gray-600">Chrome on macOS • Active now</p>
+                  </div>
+                </div>
+                <Badge variant="secondary">Current</Badge>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <Smartphone className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900">iPhone</h4>
+                    <p className="text-sm text-gray-600">iOS App • Last seen 2 hours ago</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm">
+                  Remove
                 </Button>
               </div>
             </CardContent>
