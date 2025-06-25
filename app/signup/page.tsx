@@ -1,65 +1,101 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { motion } from "framer-motion"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, MessageCircle, Loader2, Check, X } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { motion } from "framer-motion";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Eye, EyeOff, MessageCircle, Loader2, Check, X } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import bcrypt from "bcryptjs";
+import { toast } from "sonner";
 
 export default function SignUpPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
-  })
-  const router = useRouter()
+  });
+  const router = useRouter();
 
   const passwordRequirements = [
     { text: "At least 8 characters", met: formData.password.length >= 8 },
     { text: "Contains uppercase letter", met: /[A-Z]/.test(formData.password) },
     { text: "Contains lowercase letter", met: /[a-z]/.test(formData.password) },
     { text: "Contains number", met: /\d/.test(formData.password) },
-  ]
+  ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match")
-      return
-    }
-    if (!agreedToTerms) {
-      alert("Please agree to the terms and conditions")
-      return
-    }
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   "use server"
+  //   e.preventDefault();
+  //   const firstName = formData.firstName;
+  //   const lastName = formData.lastName;
+  //   const email = formData.email;
+  //   const password = formData.confirmPassword;
+  //   console.log("Entered in the function");
+  //   console.log("Entered try block");
+  //   if (password !== formData.confirmPassword) {
+  //     toast.error("Passwords does not match");
+  //     return;
+  //   }
 
-    setIsLoading(true)
+  //   if (!agreedToTerms) {
+  //     toast.error("Please agree to the terms and conditions");
+  //     return;
+  //   }
 
-    // Simulate signup process
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+  //   setIsLoading(true);
 
-    setIsLoading(false)
-    router.push("/chat")
-  }
+  //   // Simulate signup process
+  //   // await new Promise((resolve) => setTimeout(resolve, 2000));
+
+  //   if (!firstName || !lastName || !email || !password) {
+  //     toast.error("All fields are necessary");
+  //   }
+  //   console.log("DB connected");
+  //   await connectDB();
+  //   const user = await User.findOne({ email });
+  //   if (user) toast.error("User already exists");
+
+  //   const hashedPassword = await bcrypt.hash(password, 10);
+  //   console.log("Hashed Password: " + hashedPassword);
+  //   const createUser = await User.create({
+  //     firstName,
+  //     lastName,
+  //     email,
+  //     password: hashedPassword,
+  //   });
+  //   console.log("user created");
+  //   console.log(createUser);
+
+  //   setIsLoading(false);
+  //   router.push("/login");
+  //   console.log("Function executed");
+  // };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
-    }))
-  }
+    }));
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
@@ -81,16 +117,22 @@ export default function SignUpPage() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Join ChatFlow
           </h1>
-          <p className="text-gray-600 mt-2">Create your account to get started</p>
+          <p className="text-gray-600 mt-2">
+            Create your account to get started
+          </p>
         </div>
 
         <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Create Account</CardTitle>
-            <CardDescription className="text-center">Fill in your information to create your account</CardDescription>
+            <CardTitle className="text-2xl font-bold text-center">
+              Create Account
+            </CardTitle>
+            <CardDescription className="text-center">
+              Fill in your information to create your account
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
@@ -190,7 +232,13 @@ export default function SignUpPage() {
                         ) : (
                           <X className="h-3 w-3 text-red-500 mr-2" />
                         )}
-                        <span className={req.met ? "text-green-600" : "text-red-600"}>{req.text}</span>
+                        <span
+                          className={
+                            req.met ? "text-green-600" : "text-red-600"
+                          }
+                        >
+                          {req.text}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -229,9 +277,12 @@ export default function SignUpPage() {
                     )}
                   </Button>
                 </div>
-                {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                  <p className="text-sm text-red-600">Passwords do not match</p>
-                )}
+                {formData.confirmPassword &&
+                  formData.password !== formData.confirmPassword && (
+                    <p className="text-sm text-red-600">
+                      Passwords do not match
+                    </p>
+                  )}
               </motion.div>
 
               <motion.div
@@ -243,7 +294,9 @@ export default function SignUpPage() {
                 <Checkbox
                   id="terms"
                   checked={agreedToTerms}
-                  onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    setAgreedToTerms(checked as boolean)
+                  }
                 />
                 <Label htmlFor="terms" className="text-sm">
                   I agree to the{" "}
@@ -251,7 +304,10 @@ export default function SignUpPage() {
                     Terms of Service
                   </Link>{" "}
                   and{" "}
-                  <Link href="/privacy" className="text-blue-600 hover:underline">
+                  <Link
+                    href="/privacy"
+                    className="text-blue-600 hover:underline"
+                  >
                     Privacy Policy
                   </Link>
                 </Label>
@@ -287,7 +343,10 @@ export default function SignUpPage() {
             >
               <p className="text-gray-600">
                 Already have an account?{" "}
-                <Link href="/login" className="text-blue-600 hover:underline font-medium">
+                <Link
+                  href="/login"
+                  className="text-blue-600 hover:underline font-medium"
+                >
                   Sign in
                 </Link>
               </p>
@@ -296,5 +355,5 @@ export default function SignUpPage() {
         </Card>
       </motion.div>
     </div>
-  )
+  );
 }
