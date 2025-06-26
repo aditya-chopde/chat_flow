@@ -18,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, MessageCircle, Loader2, Check, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import bcrypt from "bcryptjs";
+import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 
 export default function SignUpPage() {
@@ -42,53 +42,56 @@ export default function SignUpPage() {
     { text: "Contains number", met: /\d/.test(formData.password) },
   ];
 
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   "use server"
-  //   e.preventDefault();
-  //   const firstName = formData.firstName;
-  //   const lastName = formData.lastName;
-  //   const email = formData.email;
-  //   const password = formData.confirmPassword;
-  //   console.log("Entered in the function");
-  //   console.log("Entered try block");
-  //   if (password !== formData.confirmPassword) {
-  //     toast.error("Passwords does not match");
-  //     return;
-  //   }
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-  //   if (!agreedToTerms) {
-  //     toast.error("Please agree to the terms and conditions");
-  //     return;
-  //   }
+  if (formData.password !== formData.confirmPassword) {
+    toast.error("Passwords do not match");
+    return;
+  }
 
-  //   setIsLoading(true);
+  setIsLoading(true);
+  const { email, password, firstName, lastName } = formData;
 
-  //   // Simulate signup process
-  //   // await new Promise((resolve) => setTimeout(resolve, 2000));
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
 
-  //   if (!firstName || !lastName || !email || !password) {
-  //     toast.error("All fields are necessary");
-  //   }
-  //   console.log("DB connected");
-  //   await connectDB();
-  //   const user = await User.findOne({ email });
-  //   if (user) toast.error("User already exists");
+  if (error) {
+    console.error("Sign Up Error:", error.message);
+    toast.error(error.message);
+    setIsLoading(false);
+    return;
+  }
 
-  //   const hashedPassword = await bcrypt.hash(password, 10);
-  //   console.log("Hashed Password: " + hashedPassword);
-  //   const createUser = await User.create({
-  //     firstName,
-  //     lastName,
-  //     email,
-  //     password: hashedPassword,
-  //   });
-  //   console.log("user created");
-  //   console.log(createUser);
+  const userId = data?.user?.id;
 
-  //   setIsLoading(false);
-  //   router.push("/login");
-  //   console.log("Function executed");
-  // };
+  if (userId) {
+    const { data, error: insertError } = await supabase
+      .from("users")
+      .insert([
+        {
+          id: userId,
+          firstName,
+          lastName,
+          email,
+          password
+        },
+      ]);
+
+    if (insertError) {
+      console.error("Insert Error:", insertError.message);
+      toast.error("Failed to store user data");
+    } else {
+      toast.success("Account created successfully!");
+      router.push("/login");
+    }
+  }
+
+  setIsLoading(false);
+};
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -132,7 +135,7 @@ export default function SignUpPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}

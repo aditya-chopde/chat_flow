@@ -2,7 +2,6 @@
 'use client';
 
 import { ThemeProvider } from './theme-provider';
-import { SessionProvider } from 'next-auth/react';
 
 export default function ClientWrapper({
   children,
@@ -15,8 +14,7 @@ export default function ClientWrapper({
       defaultTheme="light"
       enableSystem
       disableTransitionOnChange
-    >
-      <SessionProvider>{children}</SessionProvider>
+    >{children}
     </ThemeProvider>
   );
 }
