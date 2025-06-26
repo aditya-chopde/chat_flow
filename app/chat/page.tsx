@@ -1,13 +1,19 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { motion, AnimatePresence } from "framer-motion"
-import { useState, useRef, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
+import type React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   Send,
   Smile,
@@ -19,25 +25,29 @@ import {
   Settings,
   LogOut,
   MessageCircle,
-} from "lucide-react"
-import Link from "next/link"
+  Loader2,
+} from "lucide-react";
+import Link from "next/link";
+import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface Contact {
-  id: string
-  name: string
-  avatar: string
-  status: "online" | "offline" | "away"
-  lastMessage: string
-  timestamp: string
-  unreadCount: number
+  id: string;
+  name: string;
+  avatar: string;
+  status: "online" | "offline" | "away";
+  lastMessage: string;
+  timestamp: string;
+  unreadCount: number;
 }
 
 interface Message {
-  id: string
-  senderId: string
-  content: string
-  timestamp: string
-  type: "sent" | "received"
+  id: string;
+  senderId: string;
+  content: string;
+  timestamp: string;
+  type: "sent" | "received";
 }
 
 const contacts: Contact[] = [
@@ -77,7 +87,7 @@ const contacts: Contact[] = [
     timestamp: "1 day ago",
     unreadCount: 0,
   },
-]
+];
 
 const initialMessages: Message[] = [
   {
@@ -90,7 +100,8 @@ const initialMessages: Message[] = [
   {
     id: "2",
     senderId: "me",
-    content: "I'm doing great! Just working on some new projects. How about you?",
+    content:
+      "I'm doing great! Just working on some new projects. How about you?",
     timestamp: "10:32 AM",
     type: "sent",
   },
@@ -101,37 +112,41 @@ const initialMessages: Message[] = [
     timestamp: "10:33 AM",
     type: "received",
   },
-]
+];
 
 export default function ChatPage() {
-  const [selectedContact, setSelectedContact] = useState<Contact>(contacts[0])
-  const [messages, setMessages] = useState<Message[]>(initialMessages)
-  const [newMessage, setNewMessage] = useState("")
-  const [searchQuery, setSearchQuery] = useState("")
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [selectedContact, setSelectedContact] = useState<Contact>(contacts[0]);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [newMessage, setNewMessage] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isloggingOut, setIsloggingOut] = useState(false);
+
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const router = useRouter();
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newMessage.trim()) return
+    e.preventDefault();
+    if (!newMessage.trim()) return;
 
     const message: Message = {
       id: Date.now().toString(),
       senderId: "me",
       content: newMessage,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
       type: "sent",
-    }
+    };
 
-    setMessages((prev) => [...prev, message])
-    setNewMessage("")
+    setMessages((prev) => [...prev, message]);
+    setNewMessage("");
 
     // Simulate response
     setTimeout(() => {
@@ -139,27 +154,44 @@ export default function ChatPage() {
         id: (Date.now() + 1).toString(),
         senderId: selectedContact.id,
         content: "Thanks for your message! I'll get back to you soon.",
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
         type: "received",
-      }
-      setMessages((prev) => [...prev, response])
-    }, 1000)
-  }
+      };
+      setMessages((prev) => [...prev, response]);
+    }, 1000);
+  };
 
-  const filteredContacts = contacts.filter((contact) => contact.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredContacts = contacts.filter((contact) =>
+    contact.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "online":
-        return "bg-green-500"
+        return "bg-green-500";
       case "away":
-        return "bg-yellow-500"
+        return "bg-yellow-500";
       case "offline":
-        return "bg-gray-400"
+        return "bg-gray-400";
       default:
-        return "bg-gray-400"
+        return "bg-gray-400";
     }
-  }
+  };
+
+  useEffect(() => {
+    // Check auth only on initial load
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        router.push("/login");
+      }
+    });
+
+    // Scroll to bottom when messages change
+    scrollToBottom();
+  }, [messages]);
 
   return (
     <div className="h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex">
@@ -187,10 +219,15 @@ export default function ChatPage() {
                   <Settings className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/">
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                onClick={() => setIsDialogOpen(true)}
+              >
+                <div>
                   <LogOut className="h-4 w-4" />
-                </Link>
+                </div>
               </Button>
             </div>
           </div>
@@ -225,7 +262,10 @@ export default function ChatPage() {
                 <div className="flex items-center space-x-3">
                   <div className="relative">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={contact.avatar || "/placeholder.svg"} alt={contact.name} />
+                      <AvatarImage
+                        src={contact.avatar || "/placeholder.svg"}
+                        alt={contact.name}
+                      />
                       <AvatarFallback>
                         {contact.name
                           .split(" ")
@@ -234,19 +274,31 @@ export default function ChatPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div
-                      className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${getStatusColor(contact.status)}`}
+                      className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${getStatusColor(
+                        contact.status
+                      )}`}
                     />
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-gray-900 truncate">{contact.name}</h3>
-                      <span className="text-xs text-gray-500">{contact.timestamp}</span>
+                      <h3 className="font-semibold text-gray-900 truncate">
+                        {contact.name}
+                      </h3>
+                      <span className="text-xs text-gray-500">
+                        {contact.timestamp}
+                      </span>
                     </div>
-                    <p className="text-sm text-gray-600 truncate">{contact.lastMessage}</p>
+                    <p className="text-sm text-gray-600 truncate">
+                      {contact.lastMessage}
+                    </p>
                   </div>
 
-                  {contact.unreadCount > 0 && <Badge className="bg-blue-600 text-white">{contact.unreadCount}</Badge>}
+                  {contact.unreadCount > 0 && (
+                    <Badge className="bg-blue-600 text-white">
+                      {contact.unreadCount}
+                    </Badge>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -267,7 +319,10 @@ export default function ChatPage() {
             <div className="flex items-center space-x-3">
               <div className="relative">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={selectedContact.avatar || "/placeholder.svg"} alt={selectedContact.name} />
+                  <AvatarImage
+                    src={selectedContact.avatar || "/placeholder.svg"}
+                    alt={selectedContact.name}
+                  />
                   <AvatarFallback>
                     {selectedContact.name
                       .split(" ")
@@ -276,12 +331,18 @@ export default function ChatPage() {
                   </AvatarFallback>
                 </Avatar>
                 <div
-                  className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(selectedContact.status)}`}
+                  className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(
+                    selectedContact.status
+                  )}`}
                 />
               </div>
               <div>
-                <h2 className="font-semibold text-gray-900">{selectedContact.name}</h2>
-                <p className="text-sm text-gray-500 capitalize">{selectedContact.status}</p>
+                <h2 className="font-semibold text-gray-900">
+                  {selectedContact.name}
+                </h2>
+                <p className="text-sm text-gray-500 capitalize">
+                  {selectedContact.status}
+                </p>
               </div>
             </div>
 
@@ -309,7 +370,9 @@ export default function ChatPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
-                className={`flex ${message.type === "sent" ? "justify-end" : "justify-start"}`}
+                className={`flex ${
+                  message.type === "sent" ? "justify-end" : "justify-start"
+                }`}
               >
                 <div
                   className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
@@ -319,7 +382,13 @@ export default function ChatPage() {
                   }`}
                 >
                   <p className="text-sm">{message.content}</p>
-                  <p className={`text-xs mt-1 ${message.type === "sent" ? "text-blue-100" : "text-gray-500"}`}>
+                  <p
+                    className={`text-xs mt-1 ${
+                      message.type === "sent"
+                        ? "text-blue-100"
+                        : "text-gray-500"
+                    }`}
+                  >
                     {message.timestamp}
                   </p>
                 </div>
@@ -336,7 +405,10 @@ export default function ChatPage() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="bg-white/80 backdrop-blur-sm border-t border-gray-200 p-4"
         >
-          <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
+          <form
+            onSubmit={handleSendMessage}
+            className="flex items-center space-x-2"
+          >
             <Button type="button" variant="ghost" size="sm">
               <Paperclip className="h-4 w-4" />
             </Button>
@@ -359,6 +431,41 @@ export default function ChatPage() {
           </form>
         </motion.div>
       </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you sure?</DialogTitle>
+            <p>Are you sure you wanted to logout from the dashboard ?</p>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant={"outline"} onClick={() => setIsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={isloggingOut}
+              onClick={async () => {
+                setIsloggingOut(true);
+                await supabase.auth.signOut();
+                setIsDialogOpen(false);
+                setIsDialogOpen(false);
+                toast.success("Logged Out")
+                router.push("/login");
+              }}
+              variant={"destructive"}
+            >
+              {isloggingOut ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Logging Out...
+                </>
+              ) : (
+                "Logout"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  )
+  );
 }

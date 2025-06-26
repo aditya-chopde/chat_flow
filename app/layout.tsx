@@ -3,7 +3,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "sonner"; 
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -13,6 +13,8 @@ export const metadata: Metadata = {
     "A comprehensive chat app with smooth animations and clean design",
 };
 
+import ClientWrapper from "@/components/client-wrapper";
+
 export default function RootLayout({
   children,
 }: {
@@ -21,8 +23,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <main>{children}</main>
-        <Toaster />
+        <ClientWrapper>
+          <main>
+            {children}
+            <Toaster />
+          </main>
+        </ClientWrapper>
       </body>
     </html>
   );

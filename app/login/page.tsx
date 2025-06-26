@@ -44,12 +44,12 @@ export default function LoginPage() {
     if (data) {
       toast.success("Logged in successfully");
       console.log(data);
+      router.push("/chat");
     }
 
     if (error) toast.error(error.message);
 
     setIsLoading(false);
-    router.push("/chat");
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,6 +60,11 @@ export default function LoginPage() {
   };
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        router.push("/chat");
+      }
+    });
     setIsLoaded(true);
   }, []);
 
@@ -182,14 +187,7 @@ export default function LoginPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.5 }}
                 className="flex items-center justify-between"
-              >
-                <Link
-                  href="/forgot-password"
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </motion.div>
+              ></motion.div>
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
