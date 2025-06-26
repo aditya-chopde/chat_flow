@@ -3,7 +3,7 @@
 import type React from "react";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 
 export default function SignUpPage() {
+  const [isLoaded, setIsLoaded] = useState(false)
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -100,6 +101,18 @@ export default function SignUpPage() {
     }));
   };
 
+  useEffect(() => {
+    setIsLoaded(true);
+  }, [])
+
+  if(!isLoaded){
+    return (
+      <div className="flex justify-center items-center">
+        Loading...
+      </div>
+    )
+  }
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
       <motion.div

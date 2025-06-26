@@ -1,42 +1,93 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { motion } from "framer-motion"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Eye, EyeOff, MessageCircle, Loader2 } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Eye, EyeOff, MessageCircle, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
+import { toast } from "sonner";
+import { tree } from "next/dist/build/templates/app-page";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-  })
-  const router = useRouter()
+  });
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
-    // Simulate login process
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: formData.email,
+      password: formData.password,
+    });
 
-    setIsLoading(false)
-    router.push("/chat")
-  }
+    if (data) {
+      toast.success("Logged in successfully");
+      console.log(data);
+    }
+
+    if (error) toast.error(error.message);
+
+    setIsLoading(false);
+    router.push("/chat");
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
-    }))
+    }));
+  };
+
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
+
+  if (!isLoaded) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <svg
+          className="mr-3 w-5 h-5 animate-spin text-blue-500"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          ></circle>
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+          ></path>
+        </svg>
+      </div>
+    );
   }
 
   return (
@@ -64,8 +115,12 @@ export default function LoginPage() {
 
         <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Sign In</CardTitle>
-            <CardDescription className="text-center">Enter your credentials to access your account</CardDescription>
+            <CardTitle className="text-2xl font-bold text-center">
+              Sign In
+            </CardTitle>
+            <CardDescription className="text-center">
+              Enter your credentials to access your account
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -128,7 +183,10 @@ export default function LoginPage() {
                 transition={{ duration: 0.5, delay: 0.5 }}
                 className="flex items-center justify-between"
               >
-                <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-blue-600 hover:underline"
+                >
                   Forgot password?
                 </Link>
               </motion.div>
@@ -163,7 +221,10 @@ export default function LoginPage() {
             >
               <p className="text-gray-600">
                 Don't have an account?{" "}
-                <Link href="/signup" className="text-blue-600 hover:underline font-medium">
+                <Link
+                  href="/signup"
+                  className="text-blue-600 hover:underline font-medium"
+                >
                   Sign up
                 </Link>
               </p>
@@ -172,5 +233,5 @@ export default function LoginPage() {
         </Card>
       </motion.div>
     </div>
-  )
+  );
 }
