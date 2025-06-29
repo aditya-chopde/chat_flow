@@ -4,8 +4,20 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { MessageCircle } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { LogOut } from "lucide-react"
 
 export function Navigation() {
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
+
   return (
     <motion.nav
       initial={{ y: -100 }}
@@ -36,8 +48,9 @@ export function Navigation() {
         </div>
 
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" asChild>
-            <Link href="/login">Sign In</Link>
+          <Button variant="ghost" onClick={() => setLogoutDialogOpen(true)}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
           </Button>
           <Button
             asChild
@@ -47,6 +60,35 @@ export function Navigation() {
           </Button>
         </div>
       </div>
+      {/* Logout Confirmation Dialog */}
+      <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <LogOut className="h-5 w-5 text-red-600" />
+              <span>Confirm Logout</span>
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to log out? You'll be redirected to the home page.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setLogoutDialogOpen(false)} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+            <Button
+              asChild
+              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white w-full sm:w-auto"
+            >
+              <Link href="/">
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Link>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.nav>
   )
 }
