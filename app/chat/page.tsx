@@ -31,10 +31,12 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { socket } from "@/lib/socket";
 
 interface Contact {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   avatar: string;
   status: "online" | "offline" | "away";
   lastMessage: string;
@@ -50,44 +52,44 @@ interface Message {
   type: "sent" | "received";
 }
 
-const contacts: Contact[] = [
-  {
-    id: "1",
-    name: "Sarah Johnson",
-    avatar: "/placeholder.svg?height=40&width=40",
-    status: "online",
-    lastMessage: "Hey! How are you doing?",
-    timestamp: "2 min ago",
-    unreadCount: 2,
-  },
-  {
-    id: "2",
-    name: "Mike Chen",
-    avatar: "/placeholder.svg?height=40&width=40",
-    status: "online",
-    lastMessage: "The project looks great!",
-    timestamp: "1 hour ago",
-    unreadCount: 0,
-  },
-  {
-    id: "3",
-    name: "Emily Davis",
-    avatar: "/placeholder.svg?height=40&width=40",
-    status: "away",
-    lastMessage: "Let's catch up tomorrow",
-    timestamp: "3 hours ago",
-    unreadCount: 1,
-  },
-  {
-    id: "4",
-    name: "Alex Wilson",
-    avatar: "/placeholder.svg?height=40&width=40",
-    status: "offline",
-    lastMessage: "Thanks for the help!",
-    timestamp: "1 day ago",
-    unreadCount: 0,
-  },
-];
+// const contacts: Contact[] = [
+//   {
+//     id: "1",
+//     name: "Jon Deo",
+//     avatar: "/placeholder.svg?height=40&width=40",
+//     status: "online",
+//     lastMessage: "Hey! How are you doing?",
+//     timestamp: "2 min ago",
+//     unreadCount: 2,
+//   },
+//   {
+//     id: "2",
+//     name: "Sam Sharma",
+//     avatar: "/placeholder.svg?height=40&width=40",
+//     status: "online",
+//     lastMessage: "The project looks great!",
+//     timestamp: "1 hour ago",
+//     unreadCount: 0,
+//   },
+//   {
+//     id: "3",
+//     name: "Emily Davis",
+//     avatar: "/placeholder.svg?height=40&width=40",
+//     status: "away",
+//     lastMessage: "Let's catch up tomorrow",
+//     timestamp: "3 hours ago",
+//     unreadCount: 1,
+//   },
+//   {
+//     id: "4",
+//     name: "Alex Wilson",
+//     avatar: "/placeholder.svg?height=40&width=40",
+//     status: "offline",
+//     lastMessage: "Thanks for the help!",
+//     timestamp: "1 day ago",
+//     unreadCount: 0,
+//   },
+// ];
 
 const initialMessages: Message[] = [
   {
@@ -115,28 +117,49 @@ const initialMessages: Message[] = [
 ];
 
 export default function ChatPage() {
-  const [selectedContact, setSelectedContact] = useState<Contact>(contacts[0]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isloggingOut, setIsloggingOut] = useState(false);
-
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
+  const [userId, setUserId] = useState("");
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const router = useRouter();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const fetchContact = async (userId: string) => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .neq("id", userId);
+
+    if (error) {
+      console.error("Supabase fetch error:", error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("No users found in Supabase!");
+      return;
+    }
+
+    console.log("Fetched contacts from Supabase:", data);
+    setContacts(data);
+  };
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !userEmail) return;
 
-    const message: Message = {
+    const msg = {
       id: Date.now().toString(),
-      senderId: "me",
+      senderId: userEmail,
       content: newMessage,
       timestamp: new Date().toLocaleTimeString([], {
         hour: "2-digit",
@@ -145,36 +168,37 @@ export default function ChatPage() {
       type: "sent",
     };
 
-    setMessages((prev) => [...prev, message]);
-    setNewMessage("");
+    socket.on("receive-message", (msg) => {
+      setMessages((prev) => [
+        ...prev,
+        { ...msg, type: "received" as "received" },
+      ]);
+    });
 
-    // Simulate response
-    setTimeout(() => {
-      const response: Message = {
-        id: (Date.now() + 1).toString(),
-        senderId: selectedContact.id,
-        content: "Thanks for your message! I'll get back to you soon.",
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        type: "received",
-      };
-      setMessages((prev) => [...prev, response]);
-    }, 1000);
+    socket.emit("send-message", {
+      from: userEmail,
+      to: selectedContact?.id,
+      content: newMessage,
+    });
+
+    setNewMessage("");
   };
 
-  const filteredContacts = contacts.filter((contact) =>
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredContacts = contacts?.filter((contact) =>
+    `${contact.firstName} ${contact.lastName}`
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
   );
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined) => {
     switch (status) {
       case "online":
         return "bg-green-500";
       case "away":
         return "bg-yellow-500";
       case "offline":
+        return "bg-gray-400";
+      case null:
         return "bg-gray-400";
       default:
         return "bg-gray-400";
@@ -189,8 +213,33 @@ export default function ChatPage() {
       }
     });
 
+    supabase.auth.getUser().then(({ data }) => {
+      const email = data.user?.email;
+      const userId = data.user?.id as string;
+      setUserId(userId);
+      fetchContact(userId);
+      if (!email) return router.push("/login");
+      setUserEmail(email);
+
+      // join room
+      socket.connect();
+      socket.emit("join-room", {
+        userEmail: email,
+        peerEmail: selectedContact?.id, // email of the receiver
+      });
+
+      socket.on("receive-message", (message) => {
+        setMessages((prev) => [...prev, { ...message, type: "received" }]);
+      });
+    });
+
     // Scroll to bottom when messages change
     scrollToBottom();
+
+    return () => {
+      socket.disconnect();
+      socket.off("receive-message");
+    };
   }, [messages]);
 
   return (
@@ -255,23 +304,27 @@ export default function ChatPage() {
                 transition={{ duration: 0.3, delay: index * 0.1 }}
                 whileHover={{ backgroundColor: "rgba(59, 130, 246, 0.05)" }}
                 className={`p-4 cursor-pointer border-b border-gray-100 ${
-                  selectedContact.id === contact.id ? "bg-blue-50" : ""
+                  selectedContact?.id === contact.id ? "bg-blue-50" : ""
                 }`}
-                onClick={() => setSelectedContact(contact)}
+                onClick={() =>{ 
+                  setSelectedContact(contact)
+                }}
               >
                 <div className="flex items-center space-x-3">
                   <div className="relative">
                     <Avatar className="h-12 w-12">
                       <AvatarImage
-                        src={contact.avatar || "/placeholder.svg"}
-                        alt={contact.name}
+                        src={selectedContact?.avatar || "/placeholder.svg"}
+                        alt={`${selectedContact?.firstName} ${selectedContact?.lastName}`}
                       />
                       <AvatarFallback>
-                        {contact.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
+                        {`${selectedContact?.firstName?.[0] ?? ""}${
+                          selectedContact?.lastName?.[0] ?? ""
+                        }`}
                       </AvatarFallback>
+                      <h2 className="font-semibold text-gray-900">
+                        {`${selectedContact?.firstName} ${selectedContact?.lastName}`}
+                      </h2>
                     </Avatar>
                     <div
                       className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${getStatusColor(
@@ -283,7 +336,7 @@ export default function ChatPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-gray-900 truncate">
-                        {contact.name}
+                        {`${contact.firstName} ${contact.lastName}`}
                       </h3>
                       <span className="text-xs text-gray-500">
                         {contact.timestamp}
@@ -308,128 +361,149 @@ export default function ChatPage() {
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col">
-        {/* Chat Header */}
-        <motion.div
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-white/80 backdrop-blur-sm border-b border-gray-200 p-4"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage
-                    src={selectedContact.avatar || "/placeholder.svg"}
-                    alt={selectedContact.name}
-                  />
-                  <AvatarFallback>
-                    {selectedContact.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </AvatarFallback>
-                </Avatar>
-                <div
-                  className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(
-                    selectedContact.status
-                  )}`}
-                />
-              </div>
-              <div>
-                <h2 className="font-semibold text-gray-900">
-                  {selectedContact.name}
-                </h2>
-                <p className="text-sm text-gray-500 capitalize">
-                  {selectedContact.status}
-                </p>
-              </div>
-            </div>
+        {selectedContact ? (
+          <div className="flex flex-col h-full">
+            {/* Chat Header */}
+            <motion.div
+              initial={{ y: -50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="bg-white/80 backdrop-blur-sm border-b border-gray-200 p-4"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="relative">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage
+                        src={selectedContact?.avatar || "/placeholder.svg"}
+                        alt={`${selectedContact?.firstName} ${selectedContact?.lastName}`}
+                      />
+                      <AvatarFallback>
+                        {`${selectedContact?.firstName} ${selectedContact?.lastName}`
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div
+                      className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(
+                        selectedContact?.status
+                      )}`}
+                    />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-gray-900">
+                      {`${selectedContact?.firstName} ${selectedContact?.lastName}`}
+                    </h2>
+                    <p className="text-sm text-gray-500 capitalize">
+                      {selectedContact?.status}
+                    </p>
+                  </div>
+                </div>
 
-            <div className="flex space-x-2">
-              <Button variant="ghost" size="sm">
-                <Phone className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Video className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </motion.div>
+                <div className="flex space-x-2">
+                  <Button variant="ghost" size="sm">
+                    <Phone className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <Video className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <AnimatePresence>
-            {messages.map((message, index) => (
-              <motion.div
-                key={message.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                className={`flex ${
-                  message.type === "sent" ? "justify-end" : "justify-start"
-                }`}
-              >
-                <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                    message.type === "sent"
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                      : "bg-white shadow-sm border border-gray-200 text-gray-900"
-                  }`}
-                >
-                  <p className="text-sm">{message.content}</p>
-                  <p
-                    className={`text-xs mt-1 ${
-                      message.type === "sent"
-                        ? "text-blue-100"
-                        : "text-gray-500"
+            {/* Messages */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+              <AnimatePresence>
+                {messages.map((message, index) => (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    className={`flex ${
+                      message.type === "sent" ? "justify-end" : "justify-start"
                     }`}
                   >
-                    {message.timestamp}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-          <div ref={messagesEndRef} />
-        </div>
+                    <div
+                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                        message.type === "sent"
+                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                          : "bg-white shadow-sm border border-gray-200 text-gray-900"
+                      }`}
+                    >
+                      <p className="text-sm">{message.content}</p>
+                      <p
+                        className={`text-xs mt-1 ${
+                          message.type === "sent"
+                            ? "text-blue-100"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {message.timestamp}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              <div ref={messagesEndRef} />
+            </div>
 
-        {/* Message Input */}
-        <motion.div
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="bg-white/80 backdrop-blur-sm border-t border-gray-200 p-4"
-        >
-          <form
-            onSubmit={handleSendMessage}
-            className="flex items-center space-x-2"
-          >
-            <Button type="button" variant="ghost" size="sm">
-              <Paperclip className="h-4 w-4" />
-            </Button>
-            <Button type="button" variant="ghost" size="sm">
-              <Smile className="h-4 w-4" />
-            </Button>
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1"
-            />
-            <Button
-              type="submit"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-              disabled={!newMessage.trim()}
+            {/* Message Input */}
+            <motion.div
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="bg-white/80 backdrop-blur-sm border-t border-gray-200 p-4"
             >
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
-        </motion.div>
+              <form
+                onSubmit={handleSendMessage}
+                className="flex items-center space-x-2"
+              >
+                <Button type="button" variant="ghost" size="sm">
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+                <Button type="button" variant="ghost" size="sm">
+                  <Smile className="h-4 w-4" />
+                </Button>
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  className="flex-1"
+                />
+                <Button
+                  type="submit"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                  disabled={!newMessage.trim()}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </form>
+            </motion.div>
+          </div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.5 }}
+            className="flex-1 flex items-center justify-center text-center p-8 bg-white/80 backdrop-blur-sm border-l border-gray-200"
+          >
+            <div>
+              <h2 className="text-2xl font-semibold text-gray-700">
+                Welcome to ChatFlow 👋
+              </h2>
+              <p className="text-gray-500 mt-2">
+                Please select a contact to start chatting.
+              </p>
+            </div>
+          </motion.div>
+        )}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -449,7 +523,7 @@ export default function ChatPage() {
                 await supabase.auth.signOut();
                 setIsDialogOpen(false);
                 setIsDialogOpen(false);
-                toast.success("Logged Out")
+                toast.success("Logged Out");
                 router.push("/login");
               }}
               variant={"destructive"}
