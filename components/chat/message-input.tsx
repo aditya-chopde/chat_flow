@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { motion } from "framer-motion"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Send, Smile, Paperclip, Sparkles } from "lucide-react"
@@ -26,11 +26,11 @@ export function MessageInput({ onSendMessage, onAiClick, aiGeneratedMessage }: M
   }
 
   // Update message when AI generates one
-  useState(() => {
+  useEffect(() => {
     if (aiGeneratedMessage) {
       setNewMessage(aiGeneratedMessage)
     }
-  })
+  }, [aiGeneratedMessage])
 
   return (
     <motion.div

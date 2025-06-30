@@ -24,6 +24,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { generateAIMessage } from "@/lib/gemini";
 
 // Initial contacts data
 const initialContacts: Contact[] = [
@@ -147,6 +148,7 @@ export default function ChatPage() {
   const [contactList, setContactList] = useState<Contact[]>(initialContacts);
   const [chatMessages, setChatMessages] =
     useState<Record<string, Message[]>>(initialChatMessages);
+  const [approveMessage, setApproveMessage] = useState("");
 
   // Modal states
   const [addContactModalOpen, setAddContactModalOpen] = useState(false);
@@ -268,28 +270,23 @@ export default function ChatPage() {
 
   // Handle AI message generation
   const handleGenerateMessage = async () => {
-    if (!aiPrompt.trim()) return;
+    try {
+      if (!aiPrompt.trim()) return;
 
-    setIsGenerating(true);
+      setIsGenerating(true);
 
-    // Simulate AI message generation
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Simulate AI message generation
+      const msg = await generateAIMessage(aiPrompt);
 
-    const responses = [
-      "I hope you're having a wonderful day! I wanted to reach out and see how things are going with you.",
-      "Thanks for your patience. I've been working on this and should have an update for you soon.",
-      "I really appreciate your help with this project. Your insights have been incredibly valuable.",
-      "Hope you're doing well! I wanted to follow up on our previous conversation about the upcoming meeting.",
-      "I've been thinking about what you said, and I think you're absolutely right. Let's discuss this further.",
-    ];
-
-    const randomResponse =
-      responses[Math.floor(Math.random() * responses.length)];
-    setGeneratedMessage(randomResponse);
-    setIsGenerating(false);
+      setGeneratedMessage(msg);
+      setIsGenerating(false);
+    } catch (error: any) {
+      toast.error("Error Generating the Message: " + error.message);
+    }
   };
 
   const handleApproveMessage = () => {
+    setApproveMessage(generatedMessage);
     setAiModalOpen(false);
     setAiPrompt("");
     setGeneratedMessage("");
@@ -345,7 +342,7 @@ export default function ChatPage() {
             <MessageInput
               onSendMessage={handleSendMessage}
               onAiClick={() => setAiModalOpen(true)}
-              aiGeneratedMessage={generatedMessage}
+              aiGeneratedMessage={approveMessage}
             />
           </>
         ) : (
