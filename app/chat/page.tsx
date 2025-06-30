@@ -242,7 +242,16 @@ export default function ChatPage() {
   // Handle adding new contact
   const handleAddContact = async (user: SearchUser) => {
     // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    console.log(user.id)
+    const {error} = await supabase.rpc("add_contact", {
+      new_contact_id: user.id,
+    })
+
+    if(error){
+      console.log("Error Ocurred: ", error.message)
+    }else{
+      toast.success(`${user.name} is added to contacts`)
+    }
 
     const newContact: Contact = {
       id: user.id,

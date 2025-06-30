@@ -9,6 +9,12 @@ export interface Contact {
   email?: string
 }
   
+export interface user_contact{
+  id: string,
+  userId: string,
+  contactId: string,
+}
+
 export interface Message {
   id: string
   senderId: string

@@ -1,83 +1,38 @@
-import type { SearchUser } from "@/types/chat"
+import { supabase } from "@/lib/supabaseClient";
+import type { SearchUser, user_contact } from "@/types/chat";
 
-// Mock API function to search users
 export const searchUsers = async (query: string): Promise<SearchUser[]> => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 1000))
+  // Get current session
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
 
-  // Mock user database with example contact
-  const allUsers: SearchUser[] = [
-    // Example contact that will be found when searching "john.doe@example.com"
-    {
-      id: "example-user-1",
-      name: "John Doe",
-      email: "john.doe@example.com",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "online",
-      isContact: false,
-    },
-    {
-      id: "5",
-      name: "Jessica Brown",
-      email: "jessica.brown@example.com",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "online",
-      isContact: false,
-    },
-    {
-      id: "6",
-      name: "David Miller",
-      email: "david.miller@example.com",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "away",
-      isContact: false,
-    },
-    {
-      id: "7",
-      name: "Lisa Anderson",
-      email: "lisa.anderson@example.com",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "offline",
-      isContact: false,
-    },
-    {
-      id: "8",
-      name: "Robert Taylor",
-      email: "robert.taylor@example.com",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "online",
-      isContact: false,
-    },
-    {
-      id: "9",
-      name: "Jennifer Wilson",
-      email: "jennifer.wilson@example.com",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "online",
-      isContact: false,
-    },
-    // Additional example users for testing
-    {
-      id: "10",
-      name: "John Smith",
-      email: "john.smith@company.com",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "away",
-      isContact: false,
-    },
-    {
-      id: "11",
-      name: "Jane Doe",
-      email: "jane.doe@example.com",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "online",
-      isContact: false,
-    },
-  ]
+  if (sessionError || !session?.user) throw new Error("Not Authenticated");
 
-  // Filter users based on search query
-  return allUsers.filter(
-    (user) =>
-      user.name.toLowerCase().includes(query.toLowerCase()) || user.email.toLowerCase().includes(query.toLowerCase()),
-  )
-}
+  const currentUserId = session.user.id;
+
+  const { data: contactData, error: contactError } = await supabase
+    .from("user_contacts")
+    .select("contactId")
+    .eq("userId", currentUserId) as { data: user_contact[] | null; error: any };
+
+  if (contactError) throw contactError;
+
+  const existingContactIds = (contactData ?? []).map((c) => c.contactId);
+
+  const { data: users, error: usersError } = await supabase
+    .from("users")
+    .select("id, name, email, avatar, status")
+    .ilike("email", `%${query}%`)
+    .neq("id", currentUserId);
+
+  if (usersError) throw usersError;
+
+  const results = (users ?? []).map((user) => ({
+    ...user,
+    isContact: existingContactIds.includes(user.id),
+  }));
+
+  return results;
+};
