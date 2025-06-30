@@ -8,7 +8,7 @@ export interface Contact {
   unreadCount: number
   email?: string
 }
-
+  
 export interface Message {
   id: string
   senderId: string

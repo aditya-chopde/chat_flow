@@ -22,14 +22,13 @@ import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 
 export default function SignUpPage() {
-  const [isLoaded, setIsLoaded] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    name: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -44,55 +43,51 @@ export default function SignUpPage() {
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (formData.password !== formData.confirmPassword) {
-    toast.error("Passwords do not match");
-    return;
-  }
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
 
-  setIsLoading(true);
-  const { email, password, firstName, lastName } = formData;
+    setIsLoading(true);
+    const { email, password, name } = formData;
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
 
-  if (error) {
-    console.error("Sign Up Error:", error.message);
-    toast.error(error.message);
-    setIsLoading(false);
-    return;
-  }
+    if (error) {
+      console.error("Sign Up Error:", error.message);
+      toast.error(error.message);
+      setIsLoading(false);
+      return;
+    }
 
-  const userId = data?.user?.id;
+    const userId = data?.user?.id;
 
-  if (userId) {
-    const { data, error: insertError } = await supabase
-      .from("users")
-      .insert([
+    if (userId) {
+      const { data, error: insertError } = await supabase.from("users").insert([
         {
           id: userId,
-          firstName,
-          lastName,
+          name,
           email,
-          password
+          password,
         },
       ]);
 
-    if (insertError) {
-      console.error("Insert Error:", insertError.message);
-      toast.error("Failed to store user data");
-    } else {
-      toast.success("Account created successfully!");
-      router.push("/login");
+      if (insertError) {
+        console.error("Insert Error:", insertError.message);
+        toast.error("Failed to store user data");
+      } else {
+        toast.success("Account created successfully!");
+        router.push("/login");
+      }
     }
-  }
 
-  setIsLoading(false);
-};
-
+    setIsLoading(false);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -103,16 +98,12 @@ export default function SignUpPage() {
 
   useEffect(() => {
     setIsLoaded(true);
-  }, [])
+  }, []);
 
-  if(!isLoaded){
-    return (
-      <div className="flex justify-center items-center">
-        Loading...
-      </div>
-    )
+  if (!isLoaded) {
+    return <div className="flex justify-center items-center">Loading...</div>;
   }
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
       <motion.div
@@ -149,43 +140,23 @@ export default function SignUpPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                  className="space-y-2"
-                >
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    name="firstName"
-                    placeholder="John"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    required
-                    className="h-12"
-                  />
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                  className="space-y-2"
-                >
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    id="lastName"
-                    name="lastName"
-                    placeholder="Doe"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    required
-                    className="h-12"
-                  />
-                </motion.div>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="space-y-2"
+              >
+                <Label htmlFor="name">First Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  placeholder="John Deo"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  className="h-12 w-full"
+                />
+              </motion.div>
 
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
