@@ -25,6 +25,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { generateAIMessage } from "@/lib/gemini";
+import { fetchContacts } from "@/services/fetch-contacts";
 
 // Initial contacts data
 const initialContacts: Contact[] = [
@@ -242,14 +243,14 @@ export default function ChatPage() {
   // Handle adding new contact
   const handleAddContact = async (user: SearchUser) => {
     // Simulate API call
-    const {error} = await supabase.rpc("add_contact", {
+    const { error } = await supabase.rpc("add_contact", {
       new_contact_id: user.id,
-    })
+    });
 
-    if(error){
-      console.log("Error Ocurred: ", error.message)
-    }else{
-      toast.success(`${user.name} is added to contacts`)
+    if (error) {
+      console.log("Error Ocurred: ", error.message);
+    } else {
+      toast.success(`${user.name} is added to contacts`);
     }
 
     const newContact: Contact = {
@@ -314,6 +315,19 @@ export default function ChatPage() {
     setIsLoggingOut(false);
     setLogoutDialogOpen(false);
   };
+
+  useEffect(() => {
+    const loadContacts = async () => {
+      try {
+        const contacts = await fetchContacts();
+        setContactList(contacts);
+      } catch (error) {
+        console.error("Error loading contacts:", error);
+      }
+    };
+
+    loadContacts();
+  }, []);
 
   return (
     <div className="h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex overflow-hidden">
