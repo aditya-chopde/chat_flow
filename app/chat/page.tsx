@@ -242,7 +242,6 @@ export default function ChatPage() {
   // Handle adding new contact
   const handleAddContact = async (user: SearchUser) => {
     // Simulate API call
-    console.log(user.id)
     const {error} = await supabase.rpc("add_contact", {
       new_contact_id: user.id,
     })
