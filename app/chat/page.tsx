@@ -341,7 +341,7 @@ export default function ChatPage() {
       setIsGenerating(true);
 
       // Simulate AI message generation
-      const msg = await generateAIMessage(aiPrompt);
+      const msg = await generateAIMessage(aiPrompt, messages);
 
       setGeneratedMessage(msg);
       setIsGenerating(false);

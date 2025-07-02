@@ -2,14 +2,17 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI as string);
 
-const generateAIMessage = async (message_prompt: string) => {
+const generateAIMessage = async (message_prompt: string, messages: Object) => {
   try {
     const prompt: string = `
-        You are a person typing a message in a chat box. Do not explain, introduce, or summarize. Just give the message as it should appear if sent directly in a chat.
+      You are a person typing a message in a chat box. Do not explain, introduce, or summarize. Just give the message as it should appear if sent directly in a chat.
 
-        Task: ${message_prompt}
+      Here is the recent chat history:
+      ${messages}  
 
-        Do not use phrases like "Here's a draft" or "Sure, how about this". Only respond with the message content.
+      Task: ${message_prompt}
+
+      Do not use phrases like "Here's a draft" or "Sure, how about this". Only respond with the message content.
     `;
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
