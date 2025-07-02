@@ -296,6 +296,13 @@ export default function ChatPage() {
       new_contact_id: user.id,
     });
 
+    await supabase.from("user_contacts").insert([
+      {
+        userId: user.id,
+        contactId: userId,
+      }
+    ])
+
     if (error) {
       console.log("Error Ocurred: ", error.message);
     } else {

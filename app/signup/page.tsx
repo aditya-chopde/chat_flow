@@ -21,6 +21,8 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 
+const avatars = ["https://img.daisyui.com/images/profile/demo/gordon@192.webp", "https://img.daisyui.com/images/profile/demo/spiderperson@192.webp", "https://img.daisyui.com/images/profile/demo/batperson@192.webp", "https://img.daisyui.com/images/profile/demo/yellingcat@192.webp", "https://img.daisyui.com/images/profile/demo/distracted1@192.webp"]
+
 export default function SignUpPage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -52,6 +54,8 @@ export default function SignUpPage() {
 
     setIsLoading(true);
     const { email, password, name } = formData;
+    const randomIndex = Math.random() * avatars.length-1;
+    const getRandomAvatar = avatars[randomIndex]
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -74,6 +78,7 @@ export default function SignUpPage() {
           name,
           email,
           password,
+          avatar: getRandomAvatar
         },
       ]);
 

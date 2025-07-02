@@ -1,29 +1,57 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { motion } from "framer-motion"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Switch } from "@/components/ui/switch"
-import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Camera, Bell, Shield, Moon, Globe, Smartphone, Save, Loader2 } from "lucide-react"
-import Link from "next/link"
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import {
+  ArrowLeft,
+  Camera,
+  Bell,
+  Shield,
+  Moon,
+  Globe,
+  Smartphone,
+  Save,
+  Loader2,
+} from "lucide-react";
+import Link from "next/link";
+import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+interface Profile {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
+  bio: string;
+}
 
 export default function ProfilePage() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [profileData, setProfileData] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
-    phone: "+1 (555) 123-4567",
-    bio: "Software developer passionate about creating amazing user experiences.",
-  })
+  const [isLoading, setIsLoading] = useState(false);
+  const [profileData, setProfileData] = useState<Profile>({
+    id: "",
+    name: "",
+    email: "",
+    avatar: "",
+    bio: "",
+  });
+  const router = useRouter();
 
   const [settings, setSettings] = useState({
     notifications: true,
@@ -31,28 +59,67 @@ export default function ProfilePage() {
     onlineStatus: true,
     readReceipts: true,
     twoFactor: false,
-  })
+  });
 
   const handleSave = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     // Simulate save process
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsLoading(false)
-  }
+    const {data, error} = await supabase.from("users").update({
+      name: profileData.name,
+      email: profileData.email,
+      avatar: profileData.avatar, 
+      bio: profileData.bio,
+    }).eq("id", profileData.id);
+
+    if(error){
+      toast.error("Error Updataing Profile")
+    }else{
+      toast.success("Profile Updataed Successfully")
+    }
+
+    setIsLoading(false);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProfileData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
-    }))
-  }
+    }));
+  };
 
   const handleSettingChange = (setting: string, value: boolean) => {
     setSettings((prev) => ({
       ...prev,
       [setting]: value,
-    }))
-  }
+    }));
+  };
+
+  const fetchDetails = async () => {
+    const {
+      data: { session },
+      error: SessionError,
+    } = await supabase.auth.getSession();
+    console.log("Console...");
+    if (session) {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", session.user?.id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching user:", error.message);
+      } else {
+        setProfileData(data)
+      }
+    } else {
+      router.push("/login");
+    }
+  };
+
+  useEffect(() => {
+    fetchDetails();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -71,7 +138,9 @@ export default function ProfilePage() {
                 Back to Chat
               </Link>
             </Button>
-            <h1 className="text-2xl font-bold text-gray-900">Profile Settings</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Profile Settings
+            </h1>
           </div>
           <Button
             onClick={handleSave}
@@ -108,17 +177,18 @@ export default function ProfilePage() {
                 </div>
                 <span>Profile Information</span>
               </CardTitle>
-              <CardDescription>Update your personal information and profile picture</CardDescription>
+              <CardDescription>
+                Update your personal information and profile picture
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Profile Picture */}
               <div className="flex items-center space-x-6">
                 <div className="relative">
                   <Avatar className="h-24 w-24">
-                    <AvatarImage src="/placeholder.svg?height=96&width=96" alt="Profile" />
+                    <AvatarImage src={profileData.avatar} alt="Profile" />
                     <AvatarFallback className="text-2xl">
-                      {profileData.firstName[0]}
-                      {profileData.lastName[0]}
+                      {profileData.name}
                     </AvatarFallback>
                   </Avatar>
                   <Button
@@ -130,7 +200,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">
-                    {profileData.firstName} {profileData.lastName}
+                    {profileData.name}
                   </h3>
                   <p className="text-gray-600">{profileData.email}</p>
                   <Badge variant="secondary" className="mt-1">
@@ -146,19 +216,22 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" name="firstName" value={profileData.firstName} onChange={handleInputChange} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" name="lastName" value={profileData.lastName} onChange={handleInputChange} />
+                  <Input
+                    id="firstName"
+                    name="firstName"
+                    value={profileData.name}
+                    onChange={handleInputChange}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" name="email" type="email" value={profileData.email} onChange={handleInputChange} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" name="phone" value={profileData.phone} onChange={handleInputChange} />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={profileData.email}
+                    onChange={handleInputChange}
+                  />
                 </div>
               </div>
 
@@ -188,17 +261,25 @@ export default function ProfilePage() {
                 <Bell className="h-5 w-5 text-blue-600" />
                 <span>Notifications</span>
               </CardTitle>
-              <CardDescription>Manage your notification preferences</CardDescription>
+              <CardDescription>
+                Manage your notification preferences
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium text-gray-900">Push Notifications</h4>
-                  <p className="text-sm text-gray-600">Receive notifications on your device</p>
+                  <h4 className="font-medium text-gray-900">
+                    Push Notifications
+                  </h4>
+                  <p className="text-sm text-gray-600">
+                    Receive notifications on your device
+                  </p>
                 </div>
                 <Switch
                   checked={settings.notifications}
-                  onCheckedChange={(checked) => handleSettingChange("notifications", checked)}
+                  onCheckedChange={(checked) =>
+                    handleSettingChange("notifications", checked)
+                  }
                 />
               </div>
 
@@ -207,11 +288,15 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-medium text-gray-900">Read Receipts</h4>
-                  <p className="text-sm text-gray-600">Let others know when you've read their messages</p>
+                  <p className="text-sm text-gray-600">
+                    Let others know when you've read their messages
+                  </p>
                 </div>
                 <Switch
                   checked={settings.readReceipts}
-                  onCheckedChange={(checked) => handleSettingChange("readReceipts", checked)}
+                  onCheckedChange={(checked) =>
+                    handleSettingChange("readReceipts", checked)
+                  }
                 />
               </div>
             </CardContent>
@@ -230,17 +315,23 @@ export default function ProfilePage() {
                 <Shield className="h-5 w-5 text-green-600" />
                 <span>Privacy & Security</span>
               </CardTitle>
-              <CardDescription>Control your privacy and security settings</CardDescription>
+              <CardDescription>
+                Control your privacy and security settings
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-medium text-gray-900">Online Status</h4>
-                  <p className="text-sm text-gray-600">Show when you're online to other users</p>
+                  <p className="text-sm text-gray-600">
+                    Show when you're online to other users
+                  </p>
                 </div>
                 <Switch
                   checked={settings.onlineStatus}
-                  onCheckedChange={(checked) => handleSettingChange("onlineStatus", checked)}
+                  onCheckedChange={(checked) =>
+                    handleSettingChange("onlineStatus", checked)
+                  }
                 />
               </div>
 
@@ -248,12 +339,18 @@ export default function ProfilePage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium text-gray-900">Two-Factor Authentication</h4>
-                  <p className="text-sm text-gray-600">Add an extra layer of security to your account</p>
+                  <h4 className="font-medium text-gray-900">
+                    Two-Factor Authentication
+                  </h4>
+                  <p className="text-sm text-gray-600">
+                    Add an extra layer of security to your account
+                  </p>
                 </div>
                 <Switch
                   checked={settings.twoFactor}
-                  onCheckedChange={(checked) => handleSettingChange("twoFactor", checked)}
+                  onCheckedChange={(checked) =>
+                    handleSettingChange("twoFactor", checked)
+                  }
                 />
               </div>
             </CardContent>
@@ -272,17 +369,23 @@ export default function ProfilePage() {
                 <Moon className="h-5 w-5 text-purple-600" />
                 <span>Appearance</span>
               </CardTitle>
-              <CardDescription>Customize the look and feel of your app</CardDescription>
+              <CardDescription>
+                Customize the look and feel of your app
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-medium text-gray-900">Dark Mode</h4>
-                  <p className="text-sm text-gray-600">Switch to dark theme for better viewing in low light</p>
+                  <p className="text-sm text-gray-600">
+                    Switch to dark theme for better viewing in low light
+                  </p>
                 </div>
                 <Switch
                   checked={settings.darkMode}
-                  onCheckedChange={(checked) => handleSettingChange("darkMode", checked)}
+                  onCheckedChange={(checked) =>
+                    handleSettingChange("darkMode", checked)
+                  }
                 />
               </div>
             </CardContent>
@@ -301,7 +404,9 @@ export default function ProfilePage() {
                 <Smartphone className="h-5 w-5 text-orange-600" />
                 <span>Connected Devices</span>
               </CardTitle>
-              <CardDescription>Manage devices that have access to your account</CardDescription>
+              <CardDescription>
+                Manage devices that have access to your account
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -311,7 +416,9 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900">Web Browser</h4>
-                    <p className="text-sm text-gray-600">Chrome on macOS • Active now</p>
+                    <p className="text-sm text-gray-600">
+                      Chrome on macOS • Active now
+                    </p>
                   </div>
                 </div>
                 <Badge variant="secondary">Current</Badge>
@@ -324,7 +431,9 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900">iPhone</h4>
-                    <p className="text-sm text-gray-600">iOS App • Last seen 2 hours ago</p>
+                    <p className="text-sm text-gray-600">
+                      iOS App • Last seen 2 hours ago
+                    </p>
                   </div>
                 </div>
                 <Button variant="outline" size="sm">
@@ -336,5 +445,5 @@ export default function ProfilePage() {
         </motion.div>
       </div>
     </div>
-  )
+  );
 }
