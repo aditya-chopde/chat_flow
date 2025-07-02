@@ -358,6 +358,21 @@ export default function ChatPage() {
       toast.error(error.message);
     } else {
       disConnectSocket();
+      const { data, error } = await supabase
+        .from("users")
+        .update({ status: "offline" }) 
+        .eq("id", userId);
+      
+      if(!error){
+        console.log("User offline")
+      }else{
+        console.log(error.message)
+      }
+
+      if(data){
+        console.log(data)
+      }
+
       setLogoutDialogOpen(false);
       toast.success("Logged Out Successfully");
       router.push("/login");
@@ -385,10 +400,25 @@ export default function ChatPage() {
       router.push("/login");
     } else {
       const userId = session.user.id;
+      const { data, error } = await supabase
+        .from("users")
+        .update({ status: "online" })
+        .eq("id", userId);
+
+      if(!error){
+        console.log("User online")
+      }else{
+        console.log(error.message)
+      }
+
+      if(data){
+        console.log(data)
+      }
+
       const socket = connectSocket();
 
       socket.on("connect", () => {
-        socket.emit("register", userId); // 👈 Register the user ID with the socket server
+        socket.emit("register", userId);
       });
 
       setUserId(userId);
