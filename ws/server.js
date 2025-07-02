@@ -26,19 +26,15 @@ const userSocketMap = new Map(); // userId => socketId
 
 // Socket.IO events
 io.on("connection", (socket) => {
-  console.log("✅ User connected:", socket.id);
-
   // Register user
   socket.on("register", (userId) => {
     userSocketMap.set(userId, socket.id);
-    console.log(`🧾 Registered user: ${userId} with socket ID: ${socket.id}`);
   });
 
   // Send message
   socket.on("send_message", ({ to, from, content }) => {
     const targetSocketId = userSocketMap.get(to);
     if (targetSocketId) {
-      console.log(`📤 ${from} ➡️ ${to}: ${content}`);
       io.to(targetSocketId).emit("receive_message", {
         from,
         content,
@@ -54,13 +50,10 @@ io.on("connection", (socket) => {
 
   // Handle disconnection
   socket.on("disconnect", () => {
-    console.log("❌ User disconnected:", socket.id);
-
     // Remove disconnected socket from map
     for (let [userId, sId] of userSocketMap.entries()) {
       if (sId === socket.id) {
         userSocketMap.delete(userId);
-        console.log(`🗑️ Removed user ${userId} from active users.`);
         break;
       }
     }

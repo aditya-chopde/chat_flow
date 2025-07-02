@@ -192,13 +192,61 @@ export default function ChatPage() {
     }
   }, [selectedContact, chatMessages]);
 
+  const fetchMessagesForContact = async (contactId: string) => {
+    const { data, error } = await supabase
+      .from("messages")
+      .select("*")
+      .or(`senderId.eq.${userId},receiverId.eq.${userId}`)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching messages:", error.message);
+      toast.error("Failed to load messages.");
+      return [];
+    }
+
+    const filteredMessages: Message[] = data
+      .filter(
+        (msg) =>
+          (msg.senderId === userId && msg.receiverId === contactId) ||
+          (msg.senderId === contactId && msg.receiverId === userId)
+      )
+      .map((msg: any) => ({
+        id: msg.id.toString(),
+        senderId: msg.senderId,
+        content: msg.text,
+        timestamp: new Date(msg.created_at).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        type:
+          msg.senderId === userId
+            ? "sent"
+            : ("received" as "sent" | "received"), // ✅ Fix here
+      }));
+
+    return filteredMessages;
+  };
+
   // Handle contact selection
-  const handleContactSelect = (contact: Contact) => {
+  const handleContactSelect = async (contact: Contact) => {
     setSelectedContact(contact);
+    const fetchedMessages = await fetchMessagesForContact(contact.id);
+
+    setMessages(fetchedMessages);
+
+    setChatMessages((prev) => ({
+      ...prev,
+      [contact.id]: fetchedMessages,
+    }));
+
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
   };
 
   // Handle sending messages
-  const handleSendMessage = (messageContent: string) => {
+  const handleSendMessage = async (messageContent: string) => {
     if (!selectedContact) return;
 
     const message: Message = {
@@ -212,41 +260,33 @@ export default function ChatPage() {
       type: "sent",
     };
 
-    const socket = getSocket();
-    socket?.emit("send_message", {
-      to: selectedContact.id,
-      from: userId,
-      content: messageContent,
-    });
+    const { data, error } = await supabase.from("messages").insert([
+      {
+        senderId: userId,
+        receiverId: selectedContact.id,
+        text: messageContent,
+      },
+    ]);
 
-    // Update messages state
-    setMessages((prev) => [...prev, message]);
+    if (error) {
+      toast.error("Error Sending Message: " + error.message);
+    } else {
+      const socket = getSocket();
+      socket?.emit("send_message", {
+        to: selectedContact.id,
+        from: userId,
+        content: messageContent,
+      });
 
-    // Update chat messages store
-    setChatMessages((prev) => ({
-      ...prev,
-      [selectedContact.id]: [...(prev[selectedContact.id] || []), message],
-    }));
+      // Update messages state
+      setMessages((prev) => [...prev, message]);
 
-    // Simulate response
-    setTimeout(() => {
-      const response: Message = {
-        id: (Date.now() + 1).toString(),
-        senderId: selectedContact.id,
-        content: "Thanks for your message! I'll get back to you soon.",
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        type: "received",
-      };
-
-      setMessages((prev) => [...prev, response]);
+      // Update chat messages store
       setChatMessages((prev) => ({
         ...prev,
-        [selectedContact.id]: [...(prev[selectedContact.id] || []), response],
+        [selectedContact.id]: [...(prev[selectedContact.id] || []), message],
       }));
-    }, 1000);
+    }
   };
 
   // Handle adding new contact
@@ -340,11 +380,42 @@ export default function ChatPage() {
       data: { session },
       error,
     } = await supabase.auth.getSession();
+
     if (!session) {
       router.push("/login");
     } else {
-      connectSocket();
-      setUserId(session.user.id);
+      const userId = session.user.id;
+      const socket = connectSocket();
+
+      socket.on("connect", () => {
+        socket.emit("register", userId); // 👈 Register the user ID with the socket server
+      });
+
+      setUserId(userId);
+
+      // 👇 Listen for real-time messages
+      socket.on("receive_message", ({ from, content, timestamp }) => {
+        const newMessage: Message = {
+          id: Date.now().toString(),
+          senderId: from,
+          content,
+          timestamp,
+          type: "received",
+        };
+
+        setChatMessages((prev) => {
+          const prevMessages = prev[from] || [];
+          return {
+            ...prev,
+            [from]: [...prevMessages, newMessage],
+          };
+        });
+
+        // 👇 If the current selected chat is the sender, show it immediately
+        if (selectedContact?.id === from) {
+          setMessages((prev) => [...prev, newMessage]);
+        }
+      });
     }
   };
 
