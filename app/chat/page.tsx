@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { generateAIMessage } from "@/lib/gemini";
 import { fetchContacts } from "@/services/fetch-contacts";
+import { connectSocket, disConnectSocket, getSocket } from "@/lib/socket";
 
 // Initial contacts data
 const initialContacts: Contact[] = [
@@ -150,6 +151,7 @@ export default function ChatPage() {
   const [chatMessages, setChatMessages] =
     useState<Record<string, Message[]>>(initialChatMessages);
   const [approveMessage, setApproveMessage] = useState("");
+  const [userId, setUserId] = useState("");
 
   // Modal states
   const [addContactModalOpen, setAddContactModalOpen] = useState(false);
@@ -209,6 +211,13 @@ export default function ChatPage() {
       }),
       type: "sent",
     };
+
+    const socket = getSocket();
+    socket?.emit("send_message", {
+      to: selectedContact.id,
+      from: userId,
+      content: messageContent,
+    });
 
     // Update messages state
     setMessages((prev) => [...prev, message]);
@@ -308,25 +317,40 @@ export default function ChatPage() {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Logged Out Successfully");
+      disConnectSocket();
       setLogoutDialogOpen(false);
+      toast.success("Logged Out Successfully");
       router.push("/login");
     }
     setIsLoggingOut(false);
     setLogoutDialogOpen(false);
   };
 
-  useEffect(() => {
-    const loadContacts = async () => {
-      try {
-        const contacts = await fetchContacts();
-        setContactList(contacts);
-      } catch (error) {
-        console.error("Error loading contacts:", error);
-      }
-    };
+  const loadContacts = async () => {
+    try {
+      const contacts = await fetchContacts();
+      setContactList(contacts);
+    } catch (error) {
+      console.error("Error loading contacts:", error);
+    }
+  };
 
+  const isUserAuthenticated = async () => {
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+    if (!session) {
+      router.push("/login");
+    } else {
+      connectSocket();
+      setUserId(session.user.id);
+    }
+  };
+
+  useEffect(() => {
     loadContacts();
+    isUserAuthenticated();
   }, []);
 
   return (

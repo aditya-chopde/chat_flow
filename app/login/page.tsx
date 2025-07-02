@@ -19,8 +19,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
-import { tree } from "next/dist/build/templates/app-page";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export default function LoginPage() {
   const [isLoaded, setIsLoaded] = useState(false);
