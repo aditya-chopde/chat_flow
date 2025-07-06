@@ -78,9 +78,6 @@ export default function HomePage() {
                 Get Started <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="px-8 py-3 rounded-full border-2">
-              <Link href="/chat">Try Demo</Link>
-            </Button>
           </motion.div>
         </div>
       </section>
