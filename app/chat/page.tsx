@@ -20,7 +20,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Sparkles, Loader2, Check, LogOut } from "lucide-react";
-import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -28,7 +27,6 @@ import { generateAIMessage } from "@/lib/gemini";
 import { fetchContacts } from "@/services/fetch-contacts";
 import { connectSocket, disConnectSocket, getSocket } from "@/lib/socket";
 
-// Initial contacts data
 const initialContacts: Contact[] = [
   {
     id: "1",
