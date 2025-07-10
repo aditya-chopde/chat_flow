@@ -1,7 +1,7 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
-import { useRef, useEffect } from "react"
+import { useRef, useEffect, useState } from "react"
 import type { Message } from "@/types/chat"
 
 interface MessageListProps {
@@ -10,6 +10,12 @@ interface MessageListProps {
 
 export function MessageList({ messages }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Filter out duplicate messages by id
+  const uniqueMessages = Array.from(
+    new Map(messages.map((msg) => [msg.id, msg])).values()
+  )
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -17,14 +23,22 @@ export function MessageList({ messages }: MessageListProps) {
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages])
+  }, [uniqueMessages])
+
+  useEffect(()=>{
+    setIsLoading(true)
+  })
+
+  if(!isLoading){
+    return;
+  }
 
   return (
     <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
       <AnimatePresence>
-        {messages.map((message, index) => (
+        {uniqueMessages.map((message, index) => (
           <motion.div
-            key={message.id}
+            key={`${message.id}-${index}`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
