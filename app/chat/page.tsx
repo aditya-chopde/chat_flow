@@ -147,7 +147,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [contactList, setContactList] = useState<Contact[]>(initialContacts);
+  const [contactList, setContactList] = useState<Contact[]>([]);
   const [chatMessages, setChatMessages] =
     useState<Record<string, Message[]>>(initialChatMessages);
   const [approveMessage, setApproveMessage] = useState("");

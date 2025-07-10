@@ -88,7 +88,6 @@ export function AddContactModal({ open, onOpenChange, onAddContact }: AddContact
           <DialogDescription className="text-sm">
             Search for users by name or email address to add them to your contacts.
             <br />
-            <span className="text-blue-600 font-medium">Try searching: "john.doe@example.com"</span>
           </DialogDescription>
         </DialogHeader>
 
