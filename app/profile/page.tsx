@@ -64,20 +64,72 @@ export default function ProfilePage() {
   const handleSave = async () => {
     setIsLoading(true);
     // Simulate save process
-    const {data, error} = await supabase.from("users").update({
-      name: profileData.name,
-      email: profileData.email,
-      avatar: profileData.avatar, 
-      bio: profileData.bio,
-    }).eq("id", profileData.id);
+    const { data, error } = await supabase
+      .from("users")
+      .update({
+        name: profileData.name,
+        email: profileData.email,
+        avatar: profileData.avatar,
+        bio: profileData.bio,
+      })
+      .eq("id", profileData.id);
 
-    if(error){
-      toast.error("Error Updataing Profile")
-    }else{
-      toast.success("Profile Updataed Successfully")
+    if (error) {
+      toast.error("Error Updataing Profile");
+    } else {
+      toast.success("Profile Updataed Successfully");
     }
 
     setIsLoading(false);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Generate timestamp
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+
+    // Get signature from backend with timestamp as query param
+    const sigRes = await fetch(`/api/cloudinary-signature?timestamp=${timestamp}`);
+    if (!sigRes.ok) {
+      toast.error("Failed to get signature");
+      return;
+    }
+
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+
+    const { signature, apiKey } = await sigRes.json();
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("api_key", apiKey);
+    formData.append("timestamp", timestamp);
+    formData.append("signature", signature);
+
+    try {
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const data = await res.json();
+
+      if (data.secure_url) {
+        setProfileData((prev) => ({
+          ...prev,
+          avatar: data.secure_url,
+        }));
+        toast.success("Image uploaded!");
+      } else {
+        toast.error("Upload failed");
+      }
+    } catch (err) {
+      toast.error("Image upload error");
+      console.error(err);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,7 +162,7 @@ export default function ProfilePage() {
       if (error) {
         console.error("Error fetching user:", error.message);
       } else {
-        setProfileData(data)
+        setProfileData(data);
       }
     } else {
       router.push("/login");
@@ -194,9 +246,20 @@ export default function ProfilePage() {
                   <Button
                     size="sm"
                     className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    onClick={() =>
+                      document.getElementById("avatarInput")?.click()
+                    }
                   >
                     <Camera className="h-4 w-4 text-white" />
                   </Button>
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="avatarInput"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">

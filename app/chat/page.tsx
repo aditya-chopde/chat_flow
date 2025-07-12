@@ -19,7 +19,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Sparkles, Loader2, Check, LogOut } from "lucide-react";
+import { Sparkles, Loader2, Check, LogOut, Smartphone, Monitor } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -151,12 +151,28 @@ export default function ChatPage() {
   const [approveMessage, setApproveMessage] = useState("");
   const [userId, setUserId] = useState("");
 
+  const router = useRouter();
+
+  // New state for mobile warning dialog
+  const [mobileWarningOpen, setMobileWarningOpen] = useState(false);
+
+  // Detect mobile device and show message if mobile
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const userAgent =
+      navigator.userAgent || navigator.vendor || (window as any).opera;
+    const mobileCheck =
+      /android|iphone|ipad|ipod|opera mini|iemobile|wpdesktop/i.test(
+        userAgent.toLowerCase()
+      );
+    setIsMobile(mobileCheck);
+  }, []);
+
   // Modal states
   const [addContactModalOpen, setAddContactModalOpen] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const router = useRouter();
 
   // AI states
   const [aiPrompt, setAiPrompt] = useState("");
@@ -298,8 +314,8 @@ export default function ChatPage() {
       {
         userId: user.id,
         contactId: userId,
-      }
-    ])
+      },
+    ]);
 
     if (error) {
       console.log("Error Ocurred: ", error.message);
@@ -362,7 +378,10 @@ export default function ChatPage() {
     if (error) {
       toast.error(error.message);
     } else {
-      await supabase.from("users").update({ status: "offline" }).eq("id", userId);
+      await supabase
+        .from("users")
+        .update({ status: "offline" })
+        .eq("id", userId);
       disConnectSocket();
       setLogoutDialogOpen(false);
       toast.success("Logged Out Successfully");
@@ -390,8 +409,11 @@ export default function ChatPage() {
     if (!session) {
       router.push("/login");
     } else {
-      const userId = session.user.id;   
-      await supabase.from("users").update({ status: "online" }).eq("id", userId);   
+      const userId = session.user.id;
+      await supabase
+        .from("users")
+        .update({ status: "online" })
+        .eq("id", userId);
       const socket = connectSocket();
 
       socket.on("connect", () => {
@@ -441,38 +463,72 @@ export default function ChatPage() {
         />
       )}
 
-      {/* Sidebar */}
-      <Sidebar
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        contacts={contactList}
-        selectedContact={selectedContact}
-        onContactSelect={handleContactSelect}
-        onAddContactClick={() => setAddContactModalOpen(true)}
-        onLogoutClick={() => setLogoutDialogOpen(true)}
-      />
+      {isMobile ? (
+        <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-slate-50 to-slate-100">
+          <div className="max-w-md text-center bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <Monitor className="h-16 w-16 text-slate-600" />
+                <div className="absolute -bottom-2 -right-2 bg-blue-500 rounded-full p-1">
+                  <Smartphone className="h-4 w-4 text-white" />
+                </div>
+              </div>
+            </div>
 
-      {/* Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {selectedContact ? (
-          <>
-            <ChatHeader
-              contact={selectedContact}
-              onBackClick={() => setSidebarOpen(true)}
-            />
-            <MessageList messages={messages} />
-            <MessageInput
-              onSendMessage={handleSendMessage}
-              onAiClick={() => setAiModalOpen(true)}
-              aiGeneratedMessage={approveMessage}
-            />
-          </>
-        ) : (
-          <WelcomeScreen onOpenSidebar={() => setSidebarOpen(true)} />
-        )}
-      </div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-3">
+              Desktop Experience Recommended
+            </h2>
+
+            <p className="text-slate-600 mb-6 leading-relaxed">
+              For the best experience and full functionality, please access this
+              website on a desktop or laptop computer.
+            </p>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-700">
+                <span className="font-medium">Why desktop?</span> This
+                application is optimized for larger screens and enhanced
+                interactions.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Sidebar */}
+          <Sidebar
+            sidebarOpen={sidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            contacts={contactList}
+            selectedContact={selectedContact}
+            onContactSelect={handleContactSelect}
+            onAddContactClick={() => setAddContactModalOpen(true)}
+            onLogoutClick={() => setLogoutDialogOpen(true)}
+          />
+
+          {/* Chat Area */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {selectedContact ? (
+              <>
+                <ChatHeader
+                  contact={selectedContact}
+                  onBackClick={() => setSidebarOpen(true)}
+                />
+                <MessageList messages={messages} />
+                <MessageInput
+                  onSendMessage={handleSendMessage}
+                  onAiClick={() => setAiModalOpen(true)}
+                  aiGeneratedMessage={approveMessage}
+                />
+              </>
+            ) : (
+              <WelcomeScreen onOpenSidebar={() => setSidebarOpen(true)} />
+            )}
+          </div>
+        </>
+      )}
 
       {/* Add Contact Modal */}
       <AddContactModal
@@ -612,6 +668,9 @@ export default function ChatPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Mobile Warning Dialog */}
+      {/* Removed mobile warning dialog as redirect is implemented */}
     </div>
   );
 }
