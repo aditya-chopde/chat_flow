@@ -27,14 +27,14 @@ const io = new Server(server, {
 const userSocketMap = new Map(); // userId => socketId
 
 // Socket.IO events
-io.on("connection", (socket) => {
+io.on("connection", (socket: any) => {
   // Register user
-  socket.on("register", (userId) => {
+  socket.on("register", (userId: string) => {
     userSocketMap.set(userId, socket.id);
   });
 
   // Send message
-  socket.on("send_message", ({ to, from, content }) => {
+  socket.on("send_message", ({ to, from, content }: any) => {
     const targetSocketId = userSocketMap.get(to);
     if (targetSocketId) {
       io.to(targetSocketId).emit("receive_message", {
