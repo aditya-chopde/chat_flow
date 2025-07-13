@@ -7,18 +7,20 @@ const app = express();
 const server = http.createServer(app);
 
 // CORS setup
-app.use(cors({
-  origin: "http://localhost:3000", // frontend origin
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: "http://localhost:3000", // frontend origin
+    credentials: true,
+  })
+);
 
 // Socket.IO setup
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:3000",
     methods: ["GET", "POST"],
-    credentials: true
-  }
+    credentials: true,
+  },
 });
 
 // 👇 Track connected users by userId
@@ -40,8 +42,8 @@ io.on("connection", (socket) => {
         content,
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
-          minute: "2-digit"
-        })
+          minute: "2-digit",
+        }),
       });
     } else {
       console.log(`⚠️ User ${to} is not connected.`);
@@ -50,7 +52,6 @@ io.on("connection", (socket) => {
 
   // Handle disconnection
   socket.on("disconnect", () => {
-    // Remove disconnected socket from map
     for (let [userId, sId] of userSocketMap.entries()) {
       if (sId === socket.id) {
         userSocketMap.delete(userId);
@@ -60,8 +61,8 @@ io.on("connection", (socket) => {
   });
 });
 
-// Start server
-const PORT = 5000;
+// ✅ Fix: Use environment variable for port
+const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server listening on http://localhost:${PORT}`);
 });

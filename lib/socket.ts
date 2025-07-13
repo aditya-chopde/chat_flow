@@ -1,68 +1,28 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const cors = require("cors");
+// lib/socket.ts
+import { io, Socket } from "socket.io-client";
 
-const app = express();
-const server = http.createServer(app);
+const BASE_URL = "http://localhost:5000"; // <-- use http, not https
 
-// CORS setup
-app.use(
-  cors({
-    origin: "http://localhost:3000", // frontend origin
-    credentials: true,
-  })
-);
+let socket: Socket;
 
-// Socket.IO setup
-const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-});
+export const connectSocket = () => {
+  if (!socket) {
+    socket = io(BASE_URL, {
+      autoConnect: false,
+    });
+  }
 
-// 👇 Track connected users by userId
-const userSocketMap = new Map(); // userId => socketId
+  if (!socket.connected) {
+    socket.connect();
+  }
 
-// Socket.IO events
-io.on("connection", (socket: any) => {
-  // Register user
-  socket.on("register", (userId: string) => {
-    userSocketMap.set(userId, socket.id);
-  });
+  return socket;
+};
 
-  // Send message
-  socket.on("send_message", ({ to, from, content }: any) => {
-    const targetSocketId = userSocketMap.get(to);
-    if (targetSocketId) {
-      io.to(targetSocketId).emit("receive_message", {
-        from,
-        content,
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      });
-    } else {
-      console.log(`⚠️ User ${to} is not connected.`);
-    }
-  });
+export const disConnectSocket = () => {
+  if(socket && socket.disconnect){
+    return socket.disconnect();
+  }
+};
 
-  // Handle disconnection
-  socket.on("disconnect", () => {
-    for (let [userId, sId] of userSocketMap.entries()) {
-      if (sId === socket.id) {
-        userSocketMap.delete(userId);
-        break;
-      }
-    }
-  });
-});
-
-// ✅ Fix: Use environment variable for port
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`🚀 Server listening on http://localhost:${PORT}`);
-});
+export const getSocket = (): Socket | undefined => socket;
