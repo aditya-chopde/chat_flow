@@ -1,7 +1,7 @@
 // lib/socket.ts
 import { io, Socket } from "socket.io-client";
 
-const BASE_URL = "http://localhost:5000"; // <-- use http, not https
+const BASE_URL = "https://chat-flow-server.onrender.com"; // <-- use http, not https
 
 let socket: Socket;
 
