@@ -84,53 +84,73 @@ export default function ProfilePage() {
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    // Generate timestamp
-    const timestamp = Math.floor(Date.now() / 1000).toString();
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) {
+    toast.error("Please upload a valid image file (JPEG, PNG, GIF, or WebP)");
+    return;
+  }
 
-    // Get signature from backend with timestamp as query param
-    const sigRes = await fetch(`/api/cloudinary-signature?timestamp=${timestamp}`);
-    if (!sigRes.ok) {
-      toast.error("Failed to get signature");
+  const maxSize = 1 * 1024 * 1024; 
+  if (file.size > maxSize) {
+    toast.error("File size must be less than 1MB");
+    return;
+  }
+
+  const fileExt = file.name.split(".").pop();
+  const fileName = `avatar_${Date.now()}.${fileExt}`;
+  const filePath = fileName;
+
+  try {
+    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+    console.log("Available buckets:", buckets);
+    
+    if (bucketError) {
+      console.error("Bucket listing error:", bucketError);
+      toast.error("Storage configuration error");
       return;
     }
 
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const { data, error } = await supabase.storage
+      .from("avatars") 
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
 
-    const { signature, apiKey } = await sigRes.json();
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("api_key", apiKey);
-    formData.append("timestamp", timestamp);
-    formData.append("signature", signature);
-
-    try {
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      const data = await res.json();
-
-      if (data.secure_url) {
-        setProfileData((prev) => ({
-          ...prev,
-          avatar: data.secure_url,
-        }));
-        toast.success("Image uploaded!");
-      } else {
-        toast.error("Upload failed");
-      }
-    } catch (err) {
-      toast.error("Image upload error");
-      console.error(err);
+    if (error) {
+      toast.error(`Upload failed: ${error.message}`);
+      console.error("Upload error:", error);
+      return;
     }
-  };
+
+    console.log("Upload success:", data);
+
+    const { data: publicUrlData } = supabase.storage
+      .from("avatars") 
+      .getPublicUrl(data.path);
+
+    if (!publicUrlData?.publicUrl) {
+      toast.error("Failed to generate public URL");
+      console.error("Missing public URL from Supabase");
+      return;
+    }
+
+    setProfileData((prev) => ({
+      ...prev,
+      avatar: publicUrlData.publicUrl,
+    }));
+
+    toast.success("Image uploaded!");
+    console.log("Public URL:", publicUrlData.publicUrl);
+
+  } catch (error) {
+    toast.error("An unexpected error occurred");
+    console.error("Unexpected error:", error);
+  }
+};
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProfileData((prev) => ({
