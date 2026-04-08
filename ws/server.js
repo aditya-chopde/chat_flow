@@ -7,7 +7,6 @@ const app = express();
 const server = http.createServer(app);
 
 const allowedOrigins = [
-  "https://chat-flow-bay.vercel.app",
   "http://52.66.107.189:3000"
 ];
 
