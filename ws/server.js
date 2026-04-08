@@ -61,6 +61,10 @@ io.on("connection", (socket) => {
   });
 });
 
+app.get("/", (req, res) => {
+  res.send("Hello from Socket.IO server!");
+});
+
 // ✅ Fix: Use environment variable for port
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
