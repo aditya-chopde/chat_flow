@@ -84,73 +84,30 @@ export default function ProfilePage() {
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-  if (!allowedTypes.includes(file.type)) {
-    toast.error("Please upload a valid image file (JPEG, PNG, GIF, or WebP)");
-    return;
-  }
+    const formData = new FormData();
+    formData.append("file", file);
 
-  const maxSize = 1 * 1024 * 1024; 
-  if (file.size > maxSize) {
-    toast.error("File size must be less than 1MB");
-    return;
-  }
-
-  const fileExt = file.name.split(".").pop();
-  const fileName = `avatar_${Date.now()}.${fileExt}`;
-  const filePath = fileName;
-
-  try {
-    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
-    console.log("Available buckets:", buckets);
-    
-    if (bucketError) {
-      console.error("Bucket listing error:", bucketError);
-      toast.error("Storage configuration error");
-      return;
-    }
-
-    const { data, error } = await supabase.storage
-      .from("avatars") 
-      .upload(filePath, file, {
-        cacheControl: "3600",
-        upsert: false,
+    try {
+      const res = await fetch("/api/upload-avatar", {
+        method: "POST",
+        body: formData,
       });
 
-    if (error) {
-      toast.error(`Upload failed: ${error.message}`);
-      console.error("Upload error:", error);
-      return;
+      const data = await res.json();
+
+      setProfileData((prev) => ({
+        ...prev,
+        avatar: data.url,
+      }));
+
+      toast.success("Uploaded!");
+    } catch {
+      toast.error("Upload failed");
     }
-
-    console.log("Upload success:", data);
-
-    const { data: publicUrlData } = supabase.storage
-      .from("avatars") 
-      .getPublicUrl(data.path);
-
-    if (!publicUrlData?.publicUrl) {
-      toast.error("Failed to generate public URL");
-      console.error("Missing public URL from Supabase");
-      return;
-    }
-
-    setProfileData((prev) => ({
-      ...prev,
-      avatar: publicUrlData.publicUrl,
-    }));
-
-    toast.success("Image uploaded!");
-    console.log("Public URL:", publicUrlData.publicUrl);
-
-  } catch (error) {
-    toast.error("An unexpected error occurred");
-    console.error("Unexpected error:", error);
-  }
-};
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProfileData((prev) => ({
