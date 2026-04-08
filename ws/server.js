@@ -6,45 +6,31 @@ const cors = require("cors");
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigins = [
-  "http://52.66.107.189:3000"
-];
+// ✅ Allow all origins (simple fix)
+app.use(cors());
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
-
-// Socket.IO setup
+// ✅ Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: "*", // allow all
     methods: ["GET", "POST"],
-    credentials: true,
   },
 });
 
 // 👇 Track connected users by userId
-const userSocketMap = new Map(); // userId => socketId
+const userSocketMap = new Map();
 
 // Socket.IO events
 io.on("connection", (socket) => {
-  // Register user
+  console.log("🟢 Connected:", socket.id);
+
   socket.on("register", (userId) => {
     userSocketMap.set(userId, socket.id);
   });
 
-  // Send message
   socket.on("send_message", ({ to, from, content }) => {
     const targetSocketId = userSocketMap.get(to);
+
     if (targetSocketId) {
       io.to(targetSocketId).emit("receive_message", {
         from,
@@ -55,11 +41,10 @@ io.on("connection", (socket) => {
         }),
       });
     } else {
-      console.log(`⚠️ User ${to} is not connected.`);
+      console.log(`⚠️ User ${to} not connected`);
     }
   });
 
-  // Handle disconnection
   socket.on("disconnect", () => {
     for (let [userId, sId] of userSocketMap.entries()) {
       if (sId === socket.id) {
@@ -67,14 +52,16 @@ io.on("connection", (socket) => {
         break;
       }
     }
+    console.log("🔴 Disconnected:", socket.id);
   });
 });
 
+// Test route
 app.get("/", (req, res) => {
   res.send("Hello from Socket.IO server!");
 });
 
-// ✅ Fix: Use environment variable for port
+// Port
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server listening on http://localhost:${PORT}`);
