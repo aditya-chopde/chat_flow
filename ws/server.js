@@ -9,7 +9,7 @@ const server = http.createServer(app);
 // CORS setup
 app.use(
   cors({
-    origin: "http://localhost:3000", // frontend origin
+    origin: "https://chat-flow-bay.vercel.app/", // frontend origin
     credentials: true,
   })
 );
@@ -17,7 +17,7 @@ app.use(
 // Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "https://chat-flow-bay.vercel.app/",
     methods: ["GET", "POST"],
     credentials: true,
   },
