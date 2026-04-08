@@ -84,8 +84,22 @@ export default function ProfilePage() {
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // ✅ Validate file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only JPG, PNG, WEBP allowed");
+      return;
+    }
+
+    // ✅ Validate size (1MB max)
+    const maxSize = 1 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error("File must be less than 1MB");
+      return;
+    }
 
     const formData = new FormData();
     formData.append("file", file);
@@ -96,15 +110,21 @@ export default function ProfilePage() {
         body: formData,
       });
 
+      if (!res.ok) {
+        throw new Error("Upload failed");
+      }
+
       const data = await res.json();
 
+      // ✅ Set S3 image URL
       setProfileData((prev) => ({
         ...prev,
         avatar: data.url,
       }));
 
-      toast.success("Uploaded!");
-    } catch {
+      toast.success("Image uploaded successfully!");
+    } catch (error) {
+      console.error(error);
       toast.error("Upload failed");
     }
   };

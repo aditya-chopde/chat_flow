@@ -6,10 +6,20 @@ const cors = require("cors");
 const app = express();
 const server = http.createServer(app);
 
-// CORS setup
+const allowedOrigins = [
+  "https://chat-flow-bay.vercel.app",
+  "http://52.66.107.189:3000"
+];
+
 app.use(
   cors({
-    origin: "https://chat-flow-bay.vercel.app/", // frontend origin
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
@@ -17,7 +27,7 @@ app.use(
 // Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: "https://chat-flow-bay.vercel.app/",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },
