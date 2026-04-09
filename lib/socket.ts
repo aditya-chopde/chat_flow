@@ -1,7 +1,7 @@
 // lib/socket.ts
 import { io, Socket } from "socket.io-client";
 
-const BASE_URL = "http://65.0.30.26:5000"; // <-- use http, not https
+const BASE_URL = "http://52.66.107.189:5000"; // <-- use http, not https
 
 let socket: Socket;
 
